@@ -332,7 +332,12 @@ const Index = () => {
 
                   <div>
                     <div className="font-medium text-base">
-                      {user?.name || "User"}
+                      {(() => {
+                        type UserMetadata = { full_name?: string; name?: string };
+                        const metadata = (user as unknown as { user_metadata?: UserMetadata })?.user_metadata;
+                        const name = metadata?.full_name ?? metadata?.name ?? user?.email?.split("@")?.[0];
+                        return name || "User";
+                      })()}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {user?.email}
