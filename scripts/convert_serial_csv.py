@@ -13,6 +13,7 @@ If sampling rate is not provided and no time column is present, defaults to 250 
 """
 
 from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -21,16 +22,26 @@ from typing import Optional
 import numpy as np
 
 
-def convert_csv(input_path: str, out_dir: str, sr: Optional[float] = None, time_col: Optional[int] = None, value_col: int = 0, skiprows: int = 0, scale: Optional[float] = None):
+def convert_csv(
+    input_path: str,
+    out_dir: str,
+    sr: Optional[float] = None,
+    time_col: Optional[int] = None,
+    value_col: int = 0,
+    skiprows: int = 0,
+    scale: Optional[float] = None,
+):
     os.makedirs(out_dir, exist_ok=True)
     base = os.path.splitext(os.path.basename(input_path))[0]
     # try to load flexibly
     try:
-        data = np.genfromtxt(input_path, delimiter=',', skip_header=skiprows)
+        data = np.genfromtxt(input_path, delimiter=",", skip_header=skiprows)
         if data.ndim == 1:
             # single column
             if time_col is not None and value_col is not None and time_col != value_col:
-                raise ValueError("single-column CSV cannot have separate time and value columns")
+                raise ValueError(
+                    "single-column CSV cannot have separate time and value columns"
+                )
             values = data.astype(float)
             times = None
         else:
@@ -49,12 +60,12 @@ def convert_csv(input_path: str, out_dir: str, sr: Optional[float] = None, time_
         # fallback: robust line-by-line parse for mixed formats
         times_list = []
         vals_list = []
-        with open(input_path, 'r') as f:
+        with open(input_path, "r") as f:
             for ln in f:
                 s = ln.strip()
                 if not s:
                     continue
-                parts = [p.strip() for p in s.split(',') if p.strip() != '']
+                parts = [p.strip() for p in s.split(",") if p.strip() != ""]
                 nums = []
                 for p in parts:
                     try:
@@ -135,17 +146,18 @@ def convert_csv(input_path: str, out_dir: str, sr: Optional[float] = None, time_
         "scale_applied": float(scale) if scale is not None else None,
     }
 
-    with open(out_meta, 'w') as f:
+    with open(out_meta, "w") as f:
         json.dump(meta, f, indent=2)
 
     # preview plot
     try:
         import matplotlib.pyplot as plt
+
         fig, ax = plt.subplots(figsize=(8, 2))
         t = np.arange(len(values)) / inferred_sr
         ax.plot(t, values, lw=0.8)
-        ax.set_xlabel('time (s)')
-        ax.set_ylabel('value')
+        ax.set_xlabel("time (s)")
+        ax.set_ylabel("value")
         ax.set_title(base)
         plt.tight_layout()
         preview = os.path.join(out_dir, f"{base}_preview.png")
@@ -161,16 +173,33 @@ def convert_csv(input_path: str, out_dir: str, sr: Optional[float] = None, time_
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input', required=True)
-    parser.add_argument('--out', default='data/raw')
-    parser.add_argument('--sr', type=float, default=None, help='sampling rate (Hz)')
-    parser.add_argument('--time-col', type=int, default=None, help='column index for time (0-based)')
-    parser.add_argument('--value-col', type=int, default=0, help='column index for values (0-based)')
-    parser.add_argument('--skiprows', type=int, default=0)
-    parser.add_argument('--scale', type=float, default=None, help='multiply values by this factor (e.g., ADC->mV)')
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--out", default="data/raw")
+    parser.add_argument("--sr", type=float, default=None, help="sampling rate (Hz)")
+    parser.add_argument(
+        "--time-col", type=int, default=None, help="column index for time (0-based)"
+    )
+    parser.add_argument(
+        "--value-col", type=int, default=0, help="column index for values (0-based)"
+    )
+    parser.add_argument("--skiprows", type=int, default=0)
+    parser.add_argument(
+        "--scale",
+        type=float,
+        default=None,
+        help="multiply values by this factor (e.g., ADC->mV)",
+    )
     args = parser.parse_args()
-    convert_csv(args.input, args.out, sr=args.sr, time_col=args.time_col, value_col=args.value_col, skiprows=args.skiprows, scale=args.scale)
+    convert_csv(
+        args.input,
+        args.out,
+        sr=args.sr,
+        time_col=args.time_col,
+        value_col=args.value_col,
+        skiprows=args.skiprows,
+        scale=args.scale,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

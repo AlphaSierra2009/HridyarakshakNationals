@@ -71,18 +71,18 @@ const EmergencyContacts = ({ contacts, onContactsChange, userId }: EmergencyCont
   };
 
   return (
-    <Card className="bg-card border-border glass soft-shadow hover-lift transition-all">
+    <Card className="bg-card border-border glass soft-shadow hover-lift transition-all card-glass">
       <CardHeader className="pb-2 fade-in">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-foreground gradient-text">
+          <CardTitle className="flex items-center gap-2 text-foreground gradient-text neon-glow">
             <Users className="h-5 w-5 text-primary" />
             Emergency Contacts
           </CardTitle>
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={() => setIsAdding(!isAdding)}
-            className="text-xs"
+            className="text-xs btn-glow btn-tactile"
           >
             <UserPlus className="h-3 w-3 mr-1" />
             Add
@@ -91,7 +91,7 @@ const EmergencyContacts = ({ contacts, onContactsChange, userId }: EmergencyCont
       </CardHeader>
       <CardContent>
         {isAdding && (
-          <div className="mb-4 p-3 rounded-lg bg-muted/50 space-y-2 soft-shadow glass fade-in">
+          <div className="mb-4 p-3 rounded-lg bg-muted/40 space-y-2 soft-shadow card-glass fade-in">
             <Input
               placeholder="Name"
               value={newContact.name}
@@ -111,7 +111,7 @@ const EmergencyContacts = ({ contacts, onContactsChange, userId }: EmergencyCont
               className="h-8 text-sm"
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleAdd} className="flex-1">
+              <Button size="sm" onClick={handleAdd} className="flex-1 btn-glow btn-tactile">
                 <Plus className="h-3 w-3 mr-1" />
                 Save
               </Button>
@@ -137,11 +137,11 @@ const EmergencyContacts = ({ contacts, onContactsChange, userId }: EmergencyCont
                 key={contact.id}
                 className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 group hover-lift soft-shadow transition-all"
               >
-                <Badge variant="outline" className="w-6 h-6 rounded-full flex items-center justify-center p-0">
+                <Badge variant="outline" className="w-6 h-6 rounded-full flex items-center justify-center p-0 bg-emergency/10 text-emergency-foreground ring-1 ring-[hsl(var(--emergency)/0.06)]">
                   {index + 1}
                 </Badge>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-foreground truncate">{contact.name}</p>
+                  <p className="font-medium text-sm text-foreground truncate neon-glow">{contact.name}</p>
                   <div className="flex items-center gap-2">
                     <a
                       href={`tel:${contact.phone_number}`}

@@ -6,18 +6,23 @@ Usage:
 
 import argparse
 import os
+
 import numpy as np
+
 try:
     from tqdm import tqdm
 except Exception:
-    tqdm = lambda x: x
+    def tqdm(x):
+        return x
 import torch
-from torch.utils.data import DataLoader, TensorDataset
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_recall_fscore_support, roc_auc_score
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, TensorDataset
+
 from models.utils import SimpleECGNet
+
 try:
     from torch.utils.tensorboard import SummaryWriter
 except Exception:
@@ -63,15 +68,23 @@ def eval_model(model, loader, device):
     ys = np.vstack(ys)
     preds = (y_scores > 0.5).astype(int)
     acc = (preds == ys).all(axis=1).mean()
-    precision, recall, f1, _ = precision_recall_fscore_support(ys, preds, average=None, zero_division=0)
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        ys, preds, average=None, zero_division=0
+    )
     # try ROC AUC per class if possible
     aucs = []
     for i in range(ys.shape[1]):
         try:
             aucs.append(float(roc_auc_score(ys[:, i], y_scores[:, i])))
         except Exception:
-            aucs.append(float('nan'))
-    return {"accuracy": float(acc), "precision": precision.tolist(), "recall": recall.tolist(), "f1": f1.tolist(), "aucs": aucs}
+            aucs.append(float("nan"))
+    return {
+        "accuracy": float(acc),
+        "precision": precision.tolist(),
+        "recall": recall.tolist(),
+        "f1": f1.tolist(),
+        "aucs": aucs,
+    }
 
 
 def main():
@@ -94,7 +107,9 @@ def main():
     y = np.load(os.path.join(args.data, "y.npy"))  # (N, classes)
 
     # split
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=args.seed)
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.2, random_state=args.seed
+    )
 
     # to tensors
     X_train_t = torch.from_numpy(X_train).float()
@@ -132,19 +147,39 @@ def main():
         train_loss = train_one_epoch(model, train_loader, opt, loss_fn, device)
         metrics = eval_model(model, val_loader, device)
         val_acc = metrics.get("accuracy", 0.0)
-        print(f"Epoch {epoch}/{args.epochs}: train_loss={train_loss:.4f} val_acc={val_acc:.3f}")
+        print(
+            f"Epoch {epoch}/{args.epochs}: train_loss={train_loss:.4f} val_acc={val_acc:.3f}"
+        )
         # log
         if writer is not None:
             writer.add_scalar("train/loss", train_loss, epoch)
             writer.add_scalar("val/accuracy", val_acc, epoch)
-            for i, (p, r, f) in enumerate(zip(metrics.get("precision", []), metrics.get("recall", []), metrics.get("f1", []))):
+            for i, (p, r, f) in enumerate(
+                zip(
+                    metrics.get("precision", []),
+                    metrics.get("recall", []),
+                    metrics.get("f1", []),
+                )
+            ):
                 writer.add_scalar(f"val/class_{i}/precision", p, epoch)
                 writer.add_scalar(f"val/class_{i}/recall", r, epoch)
                 writer.add_scalar(f"val/class_{i}/f1", f, epoch)
         if args.use_wandb and wandb is not None:
             log = {"train/loss": train_loss, "val/accuracy": val_acc}
-            for i, (p, r, f) in enumerate(zip(metrics.get("precision", []), metrics.get("recall", []), metrics.get("f1", []))):
-                log.update({f"val/class_{i}/precision": p, f"val/class_{i}/recall": r, f"val/class_{i}/f1": f})
+            for i, (p, r, f) in enumerate(
+                zip(
+                    metrics.get("precision", []),
+                    metrics.get("recall", []),
+                    metrics.get("f1", []),
+                )
+            ):
+                log.update(
+                    {
+                        f"val/class_{i}/precision": p,
+                        f"val/class_{i}/recall": r,
+                        f"val/class_{i}/f1": f,
+                    }
+                )
             wandb.log(log, step=epoch)
         if val_acc > best_acc:
             best_acc = val_acc

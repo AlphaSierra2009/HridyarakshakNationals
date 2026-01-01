@@ -41,12 +41,19 @@ export const useNearestHospital = (
         if (!response.ok) throw new Error('Failed to fetch hospitals');
 
         const data = await response.json();
+        type OverpassElement = {
+          tags?: Record<string, string>;
+          lat?: number;
+          lon?: number;
+          center?: { lat: number; lon: number };
+        };
+        const elements = (data.elements || []) as OverpassElement[];
         
-        if (data.elements && data.elements.length > 0) {
+        if (elements.length > 0) {
           // Calculate distances for all hospitals
-          const hospitalsWithDistance = data.elements
-            .filter((element: any) => element.tags?.name)
-            .map((element: any) => {
+          const hospitalsWithDistance = elements
+            .filter((element) => element.tags?.name)
+            .map((element) => {
               const lat = element.lat || element.center?.lat;
               const lon = element.lon || element.center?.lon;
               
@@ -66,11 +73,11 @@ export const useNearestHospital = (
               // Extract rating info from tags (some hospitals have ratings in OSM)
               // Filter for major/well-known hospitals by checking for emergency, beds, or healthcare tags
               const isWellRated = 
-                element.tags.emergency === 'yes' ||
-                element.tags.beds ||
-                element.tags.healthcare === 'hospital' ||
-                element.tags['healthcare:speciality'] ||
-                element.tags.operator; // Has an operator suggests it's established
+                element.tags?.emergency === 'yes' ||
+                element.tags?.beds ||
+                element.tags?.healthcare === 'hospital' ||
+                (element.tags && element.tags['healthcare:speciality']) ||
+                element.tags?.operator; // Has an operator suggests it's established
 
               return {
                 name: element.tags.name,

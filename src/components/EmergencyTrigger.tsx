@@ -31,10 +31,10 @@ export default function EmergencyTrigger() {
       setOpen(false);
       toast.success("Emergency triggered. Help is being notified.");
       console.log("trigger response", resp);
-    } catch (err: any) {
+    } catch (err) {
       setLoading(false);
       console.error(err);
-      toast.error(err?.message || "Failed to trigger emergency");
+      toast.error((err as Error)?.message || "Failed to trigger emergency");
     }
   };
 

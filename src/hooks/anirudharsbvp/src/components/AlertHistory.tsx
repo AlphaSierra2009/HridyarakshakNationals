@@ -26,8 +26,9 @@ const AlertHistory = () => {
     }
 
     // Listen for new alerts
-    const handleNewAlert = (event: CustomEvent<AlertHistoryEntry>) => {
-      const newEntry = event.detail;
+    const handleNewAlert = (event: Event) => {
+      const customEvent = event as CustomEvent<AlertHistoryEntry>;
+      const newEntry = customEvent.detail;
       setHistory(prev => {
         const updated = [newEntry, ...prev].slice(0, 50); // Keep last 50 alerts
         localStorage.setItem('alertHistory', JSON.stringify(updated));
@@ -35,8 +36,8 @@ const AlertHistory = () => {
       });
     };
 
-    window.addEventListener('newAlert' as any, handleNewAlert);
-    return () => window.removeEventListener('newAlert' as any, handleNewAlert);
+    window.addEventListener('newAlert', handleNewAlert as EventListener);
+    return () => window.removeEventListener('newAlert', handleNewAlert as EventListener);
   }, []);
 
   const getStatusIcon = (status: 'sent' | 'failed' | 'pending') => {

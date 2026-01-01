@@ -7,20 +7,26 @@ Utilities:
 - load_dataset_from_dir(dir, labels_file='labels.json') -> list of samples
 - patient_split(samples, train_frac=0.8, seed=42) -> (train, val)
 """
-from typing import Dict, List, Tuple
+
 import json
 import os
+from typing import Dict, List, Tuple
+
 import numpy as np
 
 
 def load_numpy(path: str) -> Dict:
     arr = np.load(path)
-    return {"signal": np.asarray(arr).astype(float), "sr": None, "meta": {"source": path}}
+    return {
+        "signal": np.asarray(arr).astype(float),
+        "sr": None,
+        "meta": {"source": path},
+    }
 
 
 def load_csv(path: str) -> Dict:
     """Load generic CSVs. If two columns present and first is monotonic, treat as (time, value)."""
-    data = np.genfromtxt(path, delimiter=',')
+    data = np.genfromtxt(path, delimiter=",")
     if data.ndim == 1:
         values = data.astype(float)
         return {"signal": values, "sr": None, "meta": {"source": path}}
@@ -32,7 +38,11 @@ def load_csv(path: str) -> Dict:
         values = data[:, 1].astype(float)
         median_dt = float(np.median(np.diff(times))) if len(times) > 1 else None
         sr = 1.0 / median_dt if median_dt and median_dt > 0 else None
-        return {"signal": values, "sr": sr, "meta": {"source": path, "time_column_inferred": True}}
+        return {
+            "signal": values,
+            "sr": sr,
+            "meta": {"source": path, "time_column_inferred": True},
+        }
     # fallback: take first column as values
     values = data[:, 0].astype(float)
     return {"signal": values, "sr": None, "meta": {"source": path}}
@@ -42,7 +52,9 @@ def load_edf(path: str) -> Dict:
     try:
         import pyedflib
     except Exception as e:
-        raise RuntimeError("pyedflib is required to load EDF files. Install with `pip install pyedflib`") from e
+        raise RuntimeError(
+            "pyedflib is required to load EDF files. Install with `pip install pyedflib`"
+        ) from e
 
     f = pyedflib.EdfReader(path)
     n = f.signals_in_file
@@ -60,13 +72,18 @@ def load_wfdb(path: str) -> Dict:
     try:
         import wfdb
     except Exception as e:
-        raise RuntimeError("wfdb is required to load WFDB records. Install with `pip install wfdb`") from e
+        raise RuntimeError(
+            "wfdb is required to load WFDB records. Install with `pip install wfdb`"
+        ) from e
 
     # path should be a record name (without extension) or path to record
     record = wfdb.rdrecord(path)
     sig = record.p_signal
     sr = record.fs
-    meta = {"channels": sig.shape[1] if sig.ndim > 1 else 1, "comments": record.comments}
+    meta = {
+        "channels": sig.shape[1] if sig.ndim > 1 else 1,
+        "comments": record.comments,
+    }
     # take first channel by default
     if sig.ndim > 1:
         sig = sig[:, 0]
@@ -85,13 +102,19 @@ def load_record_generic(path: str) -> Dict:
     raise ValueError(f"Unsupported extension: {ext}")
 
 
-def load_dataset_from_dir(directory: str, labels_file: str = "labels.json") -> List[Dict]:
+def load_dataset_from_dir(
+    directory: str, labels_file: str = "labels.json"
+) -> List[Dict]:
     labels_path = os.path.join(directory, labels_file)
     if not os.path.exists(labels_path):
         # fallback: load all .npy and .csv files and mark as unlabeled
         records = []
         for fname in os.listdir(directory):
-            if fname.endswith(".npy") or fname.endswith(".csv") or fname.endswith(".edf"):
+            if (
+                fname.endswith(".npy")
+                or fname.endswith(".csv")
+                or fname.endswith(".edf")
+            ):
                 rec = load_record_generic(os.path.join(directory, fname))
                 rec["filename"] = fname
                 rec["label"] = None
@@ -117,15 +140,18 @@ def load_dataset_from_dir(directory: str, labels_file: str = "labels.json") -> L
     return samples
 
 
-def patient_split(samples: List[Dict], train_frac: float = 0.8, seed: int = 42) -> Tuple[List[Dict], List[Dict]]:
+def patient_split(
+    samples: List[Dict], train_frac: float = 0.8, seed: int = 42
+) -> Tuple[List[Dict], List[Dict]]:
     # group by patient_id (if present), otherwise by filename prefix
     from collections import defaultdict
+
     groups = defaultdict(list)
     for s in samples:
         pid = s.get("patient_id") or s.get("filename") or "unknown"
         groups[pid].append(s)
     keys = list(groups.keys())
-    rng = __import__('random')
+    rng = __import__("random")
     rng.seed(seed)
     rng.shuffle(keys)
     cutoff = int(len(keys) * train_frac)

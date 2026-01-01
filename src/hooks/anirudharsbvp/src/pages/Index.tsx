@@ -11,15 +11,10 @@ import WeatherWidget from "@/components/WeatherWidget";
 import { useSerialConnection } from "@/hooks/useSerialConnection";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { getDisplayName } from "@/lib/user";
 
-<<<<<<< Updated upstream
-
-const Index = () => {
-  const { username, setUsername, clearUsername } = useUser();
-=======
 export default function Index() {
   const { user, logout } = useAuth();
->>>>>>> Stashed changes
   const { theme, toggleTheme } = useTheme();
   const { isConnected, connectArduino, disconnectArduino } = useSerialConnection();
 
@@ -51,7 +46,7 @@ export default function Index() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                   Hridaya Rakshak
                 </h1>
-                <p className="text-sm text-muted-foreground">Welcome, {user?.name}</p>
+                <p className="text-sm text-muted-foreground">Welcome, {getDisplayName(user)}</p>
               </div>
             </div>
 
@@ -104,24 +99,11 @@ export default function Index() {
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
 
-<<<<<<< Updated upstream
             <div className="animate-fade-in-up">
               <ECGMonitor onBufferUpdate={handleBufferUpdate} />
             </div>
 
-            {/* ⬇⬇ NEW BLOCK WITH COMPASS ADDED ⬇⬇ */}
-            <div className="flex gap-4 items-start animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-              <LocationMap onLocationUpdate={handleLocationUpdate} />
-              <Compass />   {/* Import Compass from "@/components/Compass" */}
-            </div>
-
-=======
-            {/* ECG */}
-            <ECGMonitor onBufferUpdate={handleBufferUpdate} />
-
-            {/* Map */}
             <LocationMap onLocationUpdate={handleLocationUpdate} />
->>>>>>> Stashed changes
           </div>
 
           {/* Right Column */}

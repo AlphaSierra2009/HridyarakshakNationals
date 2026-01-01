@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+import os
+
 import numpy as np
 import onnxruntime as ort
-import os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 
 class InferRequest(BaseModel):
@@ -39,7 +40,7 @@ async def infer(req: InferRequest):
 
     # For our SimpleECGNet ONNX, input shape should be (batch, time) or (batch, 1, time)
     # create batch
-dummy = signal[np.newaxis, :].astype(np.float32)
+    dummy = signal[np.newaxis, :].astype(np.float32)
 
     try:
         result = sess.run(None, {input_name: dummy})
@@ -50,7 +51,10 @@ dummy = signal[np.newaxis, :].astype(np.float32)
 
         # Map to labels (same order as training y columns)
         labels = ["normal", "st_elevation", "afib"]
-        out = {labels[i]: probs_list[i] if i < len(probs_list) else None for i in range(len(labels))}
+        out = {
+            labels[i]: probs_list[i] if i < len(probs_list) else None
+            for i in range(len(labels))
+        }
 
         # simple highest label
         pred_idx = int(np.argmax(probs[0]))

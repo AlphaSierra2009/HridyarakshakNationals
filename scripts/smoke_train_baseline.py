@@ -1,6 +1,7 @@
 """Pure-numpy baseline classifier to validate dataset without external packages.
 Computes simple features and trains a nearest-centroid classifier.
 """
+
 import numpy as np
 
 
@@ -13,8 +14,8 @@ def extract_features(X):
         mx = float(x.max())
         rng = mx - mn
         peaks = 0
-        for i in range(1, len(x)-1):
-            if x[i] > x[i-1] and x[i] > x[i+1] and x[i] > (mean + 0.5*std):
+        for i in range(1, len(x) - 1):
+            if x[i] > x[i - 1] and x[i] > x[i + 1] and x[i] > (mean + 0.5 * std):
                 peaks += 1
         feats.append([mean, std, mn, mx, rng, peaks])
     return np.array(feats)
@@ -38,13 +39,15 @@ def classification_report_simple(y_true, y_pred):
         prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
-        out[int(c)] = dict(precision=prec, recall=rec, f1=f1, support=int(np.sum(y_true==c)))
+        out[int(c)] = dict(
+            precision=prec, recall=rec, f1=f1, support=int(np.sum(y_true == c))
+        )
     return out
 
 
 def main():
-    X = np.load('data/processed/X.npy')
-    y = np.load('data/processed/y.npy')
+    X = np.load("data/processed/X.npy")
+    y = np.load("data/processed/y.npy")
     y_cls = np.argmax(y, axis=1)
 
     feats = extract_features(X)
@@ -69,10 +72,11 @@ def main():
     report = classification_report_simple(y_te, y_pred)
 
     acc = (y_pred == y_te).mean()
-    print(f'Baseline nearest-centroid accuracy: {acc:.3f}')
-    print('Per-class report:')
+    print(f"Baseline nearest-centroid accuracy: {acc:.3f}")
+    print("Per-class report:")
     for k, v in report.items():
         print(k, v)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

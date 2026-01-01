@@ -1,6 +1,9 @@
 """Generate and save a few realistic fixture signals for testing and model validation."""
+
 import os
+
 import numpy as np
+
 from data.prepare_dataset import generate_synthetic
 
 
@@ -13,6 +16,7 @@ def main():
         path = os.path.join("data/fixtures", f"{kind}_30s_{sr}hz.npy")
         np.save(path, sig.astype(np.float32))
         print("Saved", path)
+
 
 if __name__ == "__main__":
     main()

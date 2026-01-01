@@ -46,7 +46,6 @@ serve(async (req) => {
     const { alert_id, user_id, latitude, longitude }: AlertRequest = await req.json();
 
     console.log("Processing emergency alert:", { alert_id, user_id, latitude, longitude });
-
     // Get user profile
     const { data: profile } = await supabase
       .from("profiles")

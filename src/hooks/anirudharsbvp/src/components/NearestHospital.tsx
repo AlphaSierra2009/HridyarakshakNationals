@@ -16,6 +16,7 @@ type Hospital = {
   lon: number;
   distanceMeters?: number;
   address?: string;
+  phone?: string;
 };
 
 const haversineMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -49,7 +50,6 @@ export default function NearestHospital({ location }: NearestHospitalProps) {
   useEffect(() => {
     if (!location) return;
     fetchNearby(location.latitude, location.longitude, radius);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, radius]);
 
   async function fetchNearby(lat: number, lon: number, searchRadius = 3000) {
@@ -65,18 +65,27 @@ export default function NearestHospital({ location }: NearestHospitalProps) {
       });
       if (!res.ok) throw new Error("Overpass failed");
       const json = await res.json();
-      const elements = json.elements || [];
-      const found: Hospital[] = elements.map((el: any) => {
-        const latE = el.lat ?? el.center?.lat;
-        const lonE = el.lon ?? el.center?.lon;
-        return {
-          id: String(el.id),
-          name: (el.tags && (el.tags.name || el.tags.operator)) || "Hospital/Clinic",
-          lat: latE,
-          lon: lonE,
-          address: el.tags?.addr_full || el.tags?.address || undefined
-        } as Hospital;
-      }).filter((h: Hospital) => h.lat && h.lon);
+      type OverpassElement = {
+        id?: number | string;
+        tags?: Record<string, string>;
+        lat?: number;
+        lon?: number;
+        center?: { lat: number; lon: number };
+      };
+      const elements = (json.elements || []) as OverpassElement[];
+      const found: Hospital[] = elements
+        .map((el) => {
+          const latE = el.lat ?? el.center?.lat;
+          const lonE = el.lon ?? el.center?.lon;
+          return {
+            id: String(el.id),
+            name: (el.tags && (el.tags.name || el.tags.operator)) || "Hospital/Clinic",
+            lat: latE as number,
+            lon: lonE as number,
+            address: el.tags?.addr_full || el.tags?.address || undefined,
+          } as Hospital;
+        })
+        .filter((h: Hospital) => h.lat && h.lon);
 
       // compute distances
       const withDist = found.map(h => ({ ...h, distanceMeters: haversineMeters(lat, lon, h.lat, h.lon) }));

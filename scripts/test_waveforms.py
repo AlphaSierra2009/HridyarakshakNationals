@@ -1,20 +1,22 @@
 """Simple tests for generated waveforms (not using pytest to avoid adding test framework complexity).
 Run with: python scripts/test_waveforms.py
 """
+
 import numpy as np
+
 from data.prepare_dataset import generate_synthetic
 
 
 def median(arr):
     a = np.array(arr)
-    return np.sort(a)[len(a)//2]
+    return np.sort(a)[len(a) // 2]
 
 
 def test_st_elevation():
     sig = generate_synthetic(duration_sec=20, sr=250, kind="st_elevation")
     n = len(sig)
-    baseline = median(sig[:int(0.2*n)])
-    tail_med = median(sig[int(0.7*n):])
+    baseline = median(sig[: int(0.2 * n)])
+    tail_med = median(sig[int(0.7 * n) :])
     print("baseline", baseline, "tail_med", tail_med, "increase", tail_med - baseline)
     assert tail_med - baseline > 0.5, "ST elevation not prominent enough"
     print("ST elevation test passed")

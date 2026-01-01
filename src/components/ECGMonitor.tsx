@@ -8,8 +8,28 @@ import { useLocation } from "@/hooks/useLocation";
 import { callTriggerEmergency } from "@/lib/alerts";
 import { toast } from "sonner";
 
+type ECGReading = {
+  id?: string;
+  reading_value: number;
+  heart_rate?: number;
+  st_elevation_detected?: boolean;
+  reading_timestamp?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
+type EmergencyPayload = {
+  latitude: number | null;
+  longitude: number | null;
+  alert_type: string;
+  notes?: string;
+  reading?: number[];
+  stemi_level?: number | null;
+  is_test?: boolean;
+};
+
 interface ECGMonitorProps {
-  readings: any[];
+  readings: ECGReading[];
   isConnected: boolean;
   heartRate?: number;
   stElevationDetected?: boolean;
@@ -251,7 +271,7 @@ const ECGMonitor = ({
 
     draw();
     return () => cancelAnimationFrame(frame);
-  }, [stElevationDetected, smoothing, showGrid]);
+  }, [stElevationDetected, smoothing, showGrid, stPercent]);
 
   // Auto-trigger detection: watch stPercent and handle arming/countdown/trigger
   useEffect(() => {
@@ -318,7 +338,7 @@ const ECGMonitor = ({
                     reading: bufferRef.current.slice(-200),
                     stemi_level: stPercent ?? null,
                     is_test: false,
-                  } as any;
+                  } as EmergencyPayload;
 
                   const resp = await callTriggerEmergency(payload);
                   setLastTriggeredAt(Date.now());
@@ -338,9 +358,10 @@ const ECGMonitor = ({
                   }
 
                   console.log('trigger response', resp);
-                } catch (err: any) {
+                } catch (err) {
                   console.error("Auto trigger failed", err);
-                  toast.error(err?.message || "Failed to auto-trigger emergency");
+                  const msg = (err as Error)?.message || "Failed to auto-trigger emergency";
+                  toast.error(msg);
                 }
               })();
               return null;
@@ -363,7 +384,7 @@ const ECGMonitor = ({
     return () => {
       // do not clear the armingTimer here; it's handled on success/cancel
     };
-  }, [stPercent, autoTriggerEnabled, armed, countdown, lastTriggeredAt, location]);
+  }, [stPercent, autoTriggerEnabled, armed, countdown, lastTriggeredAt, location, NOTIFICATION_COOLDOWN_MS, RATE_LIMIT_MS]);
 
   const cancelArming = () => {
     stSinceRef.current = null;
@@ -435,7 +456,7 @@ const ECGMonitor = ({
               )}
 
               {/* Dev-only simulate button (Vite dev mode) */}
-              {(import.meta.env as any).DEV && (
+              {import.meta.env.DEV && (
                 <>
                   <button onClick={() => startSimulate(8)} className="px-2 py-1 rounded-md text-xs bg-gray-700 hover:bg-gray-600" title="Simulate sustained ST elevation for testing">Sim ST</button>
                   <button
@@ -449,7 +470,7 @@ const ECGMonitor = ({
                         reading: bufferRef.current.slice(-200),
                         stemi_level: stPercent ?? 80,
                         is_test: true,
-                      } as any;
+                      } as EmergencyPayload;
                       try {
                         const r = await callTriggerEmergency(testPayload);
                         toast.success("Test alert sent");

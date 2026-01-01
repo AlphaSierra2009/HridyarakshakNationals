@@ -23,8 +23,10 @@ export const useSerialConnection = () => {
         return;
       }
 
-      // Request and open port
-      const port = await (navigator as any).serial.requestPort();
+      // Request and open port (typed guard to avoid `any` cast)
+      type WebSerialNavigator = Navigator & { serial?: { requestPort: () => Promise<unknown> } };
+      const nav = navigator as WebSerialNavigator;
+      const port = await nav.serial!.requestPort();
       await port.open({ baudRate: 115200 });
       portRef.current = port;
       setIsConnected(true);

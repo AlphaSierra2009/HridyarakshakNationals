@@ -41,9 +41,18 @@ export const useNearestHospital = (
         const data = await response.json();
 
         if (data.elements && data.elements.length > 0) {
-          const hospitalsWithDistance = data.elements
-            .filter((element: any) => element.tags?.name)
-            .map((element: any) => {
+          type OverpassElement = {
+            lat?: number;
+            lon?: number;
+            center?: { lat: number; lon: number };
+            tags?: Record<string, string>;
+          };
+
+          const elements: OverpassElement[] = data.elements;
+
+          const hospitalsWithDistance = elements
+            .filter((element) => element.tags?.name)
+            .map((element) => {
               const lat = element.lat || element.center?.lat;
               const lon = element.lon || element.center?.lon;
 

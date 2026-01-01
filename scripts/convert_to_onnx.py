@@ -1,16 +1,20 @@
 """Convert a trained PyTorch checkpoint to ONNX and run a quick runtime check with onnxruntime."""
+
 import os
+
 import numpy as np
-import torch
-import onnx
 import onnxruntime as ort
+import torch
+
 from models.utils import SimpleECGNet
 
 
 def main():
     ckpt = "models/checkpoint_smoke.pt"
     if not os.path.exists(ckpt):
-        raise FileNotFoundError("Checkpoint not found. Run smoke train first: scripts/smoke_train.sh")
+        raise FileNotFoundError(
+            "Checkpoint not found. Run smoke train first: scripts/smoke_train.sh"
+        )
 
     # load a sample input shape from processed data
     X = np.load("data/processed/X.npy")
@@ -38,6 +42,7 @@ def main():
     inp = {sess.get_inputs()[0].name: X[:2].astype(np.float32)}
     out = sess.run(None, inp)
     print("ONNX runtime output shapes:", [o.shape for o in out])
+
 
 if __name__ == "__main__":
     main()

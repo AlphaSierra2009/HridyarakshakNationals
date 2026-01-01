@@ -66,7 +66,7 @@ const AlertStatus = ({ alerts, onAlertsChange }: AlertStatusProps) => {
   };
 
   return (
-    <Card className={`bg-card border-border glass soft-shadow hover-lift transition-all ${hasActiveAlert ? "border-emergency strong-shadow" : ""}`}>
+    <Card className={`bg-card border-border glass soft-shadow hover-lift transition-all ${hasActiveAlert ? "border-emergency strong-shadow emergency-pulse" : ""}`}>
       <CardHeader className="pb-2 fade-in">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-foreground gradient-text">
@@ -74,7 +74,7 @@ const AlertStatus = ({ alerts, onAlertsChange }: AlertStatusProps) => {
             Alert Status
           </CardTitle>
           {hasActiveAlert && (
-            <Badge className="bg-emergency text-emergency-foreground emergency-pulse">
+            <Badge className="bg-emergency text-emergency-foreground emergency-pulse neon-glow px-3 py-1 rounded-md shadow-sm">
               {activeAlerts.length} Active
             </Badge>
           )}

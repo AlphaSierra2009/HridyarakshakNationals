@@ -18,6 +18,7 @@ import useECGStream from "@/hooks/useECGStream";
 
 
 import ECGMonitor from "@/components/ECGMonitor";
+import { getDisplayName } from "@/lib/user";
 
 interface Contact {
   id: string;
@@ -255,7 +256,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background page-transition">
       {/* Header */}
-      <header className="border-b border-border bg-card sticky top-0 z-50 soft-shadow hover-lift transition-all">
+      <header className="border-b border-border bg-card/70 sticky top-0 z-50 soft-shadow hover-lift transition-all electric-veins">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -326,21 +327,15 @@ const Index = () => {
 
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center text-lg font-semibold">
-                    {user?.email?.[0]?.toUpperCase() || "U"}
-                  </div>
-
-                  <div>
-                    <div className="font-medium text-base">
-                      {(() => {
-                        type UserMetadata = { full_name?: string; name?: string };
-                        const metadata = (user as unknown as { user_metadata?: UserMetadata })?.user_metadata;
-                        const name = metadata?.full_name ?? metadata?.name ?? user?.email?.split("@")?.[0];
-                        return name || "User";
-                      })()}
+                  <div className="relative flex items-center gap-4">
+                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-[hsl(var(--primary)/1)] to-[hsl(var(--accent)/1)] flex items-center justify-center text-lg font-semibold text-primary-foreground shadow-[0_8px_30px_rgba(255,0,0,0.12)] ring-2 ring-[hsl(var(--primary)/0.18)]">
+                      {user?.email?.[0]?.toUpperCase() || "U"}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {user?.email}
+                    <div>
+                      <div className="font-medium text-base neon-glow">{getDisplayName(user)}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {user?.email}
+                      </div>
                     </div>
                   </div>
                 </div>

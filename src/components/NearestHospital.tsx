@@ -70,24 +70,35 @@ export default function NearestHospital({ location }: NearestHospitalProps) {
 
       if (!res.ok) throw new Error("Overpass failed");
       const json = await res.json();
-      const elements = json.elements || [];
+      type OverpassElement = {
+        id?: number | string;
+        lat?: number;
+        lon?: number;
+        center?: { lat: number; lon: number };
+        tags?: {
+          name?: string;
+          operator?: string;
+          addr_full?: string;
+          address?: string;
+          [k: string]: unknown;
+        };
+      };
+      const elements: OverpassElement[] = (json.elements as OverpassElement[]) || [];
 
       const found: Hospital[] = elements
-        .map((el: any) => {
+        .map((el) => {
           const latE = el.lat ?? el.center?.lat;
           const lonE = el.lon ?? el.center?.lon;
 
           return {
             id: String(el.id),
-            name:
-              (el.tags && (el.tags.name || el.tags.operator)) ||
-              "Hospital/Clinic",
+            name: (el.tags && (el.tags.name || el.tags.operator)) || "Hospital/Clinic",
             lat: latE,
             lon: lonE,
             address: el.tags?.addr_full || el.tags?.address || undefined,
-          } as Hospital;
+          };
         })
-        .filter((h: Hospital) => h.lat && h.lon);
+        .filter((h: Hospital) => typeof h.lat === "number" && typeof h.lon === "number");
 
       const withDist = found.map((h) => ({
         ...h,

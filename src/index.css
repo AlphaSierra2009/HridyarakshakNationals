@@ -15,19 +15,20 @@
     --popover-foreground: 0 0% 96%;
 
     /* Keep a subtle teal/green accent for ECG elements */
-    --primary: 175 80% 45%;
-    --primary-foreground: 0 0% 96%;
+    /* Neon red primary & emergency for ECG theme */
+    --primary: 0 100% 60%; /* bright neon red */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 180 8% 8%;
-    --secondary-foreground: 0 0% 88%;
+    --secondary: 330 70% 12%; /* deep magenta accent */
+    --secondary-foreground: 0 0% 96%;
 
     --muted: 0 0% 8%;
     --muted-foreground: 0 0% 64%;
 
-    --accent: 160 80% 40%;
-    --accent-foreground: 0 0% 96%;
+    --accent: 340 90% 55%; /* rich accent close to neon red */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 80% 60%;
+    --destructive: 0 95% 55%;
     --destructive-foreground: 0 0% 96%;
 
     --success: 142 76% 45%;
@@ -36,8 +37,11 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 96%;
 
-    --emergency: 0 85% 65%;
-    --emergency-foreground: 0 0% 96%;
+    --emergency: 0 100% 50%; /* full-on emergency neon */
+    --emergency-foreground: 0 0% 100%;
+
+    /* neon glow scale */
+    --neon-strength: 0.7;
 
     /* ECG-specific colors */
     --ecg-line: 150 90% 60%;
@@ -47,7 +51,7 @@
 
     --border: 0 0% 10%;
     --input: 0 0% 10%;
-    --ring: 175 80% 40%;
+    --ring: 0 85% 55%;
 
     --radius: 0.75rem;
 
@@ -150,17 +154,43 @@
     100% { stroke-dashoffset: 0; }
   }
 
+  .neon-glow {
+    text-shadow: 0 0 8px hsl(var(--emergency) / 0.9), 0 0 20px hsl(var(--emergency) / 0.75);
+  }
+
   .emergency-pulse {
-    animation: emergency-pulse 1.5s ease-in-out infinite;
+    animation: emergency-pulse 1.4s ease-in-out infinite;
+    box-shadow: 0 4px 24px hsl(var(--emergency) / 0.5);
   }
 
   @keyframes emergency-pulse {
     0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--emergency) / 0.7);
+      box-shadow:
+        0 0 0 0 hsl(var(--emergency) / 0.06),
+        0 0 18px hsl(var(--emergency) / 0.6);
+      transform: scale(1);
     }
     50% {
-      box-shadow: 0 0 0 15px hsl(var(--emergency) / 0);
+      box-shadow:
+        0 0 0 18px hsl(var(--emergency) / 0),
+        0 0 40px hsl(var(--emergency) / 1);
+      transform: scale(1.02);
     }
+  }
+
+  .btn-tactile {
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn-tactile:active { transform: translateY(1px) scale(0.995); }
+  .btn-glow {
+    box-shadow: 0 6px 28px hsl(var(--primary) / 0.12);
+  }
+
+  .card-glass {
+    background: linear-gradient(180deg, hsl(var(--card) / 0.48), hsl(var(--card) / 0.32));
+    border: 1px solid hsl(var(--border) / 0.45);
+    backdrop-filter: blur(8px) saturate(160%);
+    box-shadow: 0 10px 40px hsl(var(--foreground) / 0.06);
   }
 
   /* Smooth hover lift */
@@ -211,5 +241,23 @@
   @keyframes pageFade {
     from { opacity: 0.7; filter: blur(4px); }
     to { opacity: 1; filter: blur(0); }
+  }
+
+  .electric-veins {
+    background-image:
+      radial-gradient(circle at 20% 30%, hsl(var(--emergency) / 0.15), transparent 40%),
+      radial-gradient(circle at 80% 70%, hsl(var(--emergency) / 0.12), transparent 45%);
+    animation: veinPulse 6s ease-in-out infinite;
+  }
+
+  @keyframes veinPulse {
+    0%, 100% {
+      opacity: 0.6;
+      filter: blur(0px);
+    }
+    50% {
+      opacity: 1;
+      filter: blur(1.5px);
+    }
   }
 }

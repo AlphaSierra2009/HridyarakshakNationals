@@ -153,10 +153,10 @@ const ECGMonitor = ({ bpm = 0, onBufferUpdate, onStemiDetected }: ECGMonitorProp
           }));
           // optional callback
           if (onStemiDetected) {
-            try { onStemiDetected({ level: relative, durationMs: elapsed }); } catch (e) {}
+            try { onStemiDetected({ level: relative, durationMs: elapsed }); } catch (e) { console.error(e); }
           }
           // show toast immediate feedback
-          try { toast.error("ST elevation detected (STEMI) — check patient & alert emergency"); } catch(e) {}
+          try { toast.error("ST elevation detected (STEMI) — check patient & alert emergency"); } catch (e) { console.error(e); }
         }
         // reset clearedAt
         clearedAtRef.current = null;

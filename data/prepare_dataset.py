@@ -11,8 +11,9 @@ python data/prepare_dataset.py --input-dir data/raw --out data/processed --windo
 """
 
 import argparse
-import os
 import json
+import os
+
 import numpy as np
 
 # Prefer scipy if available for stable filters, but provide an FFT fallback if not installed.
@@ -25,6 +26,7 @@ try:
         high = highcut / nyq
         b, a = butter(order, [low, high], btype="band")
         return filtfilt(b, a, signal)
+
 except Exception:
     print("scipy not available; using FFT-based bandpass fallback (less precise)")
 
@@ -134,7 +136,9 @@ def main():
         labels = []
         for i in range(args.n_samples):
             kind = np.random.choice(kinds, p=[0.45, 0.2, 0.2, 0.15])
-            sig = generate_synthetic(duration_sec=args.duration, sr=args.sampling_rate, kind=kind)
+            sig = generate_synthetic(
+                duration_sec=args.duration, sr=args.sampling_rate, kind=kind
+            )
             fname = os.path.join(args.out, f"sample_{i}_{kind}.npy")
             np.save(fname, sig.astype(np.float32))
             labels.append({"file": fname, "label": kind})
@@ -158,7 +162,11 @@ def main():
                 if "file" in item and os.path.isabs(item["file"]):
                     key = item["file"]
                 else:
-                    key = os.path.join(input_dir, item["filename"]) if "filename" in item else os.path.join(input_dir, item.get("file", ""))
+                    key = (
+                        os.path.join(input_dir, item["filename"])
+                        if "filename" in item
+                        else os.path.join(input_dir, item.get("file", ""))
+                    )
                 key = key.replace("\\", "/")
                 labels_map[key] = item["label"]
 

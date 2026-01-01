@@ -13,8 +13,9 @@ Usage:
 """
 
 import argparse
-import os
 import json
+import os
+
 import numpy as np
 
 
@@ -48,12 +49,20 @@ def label_window(seg, sr, global_mean, global_std):
 
     # prioritise ST elevation
     if st_offset > 0.5 * global_std:
-        return "st_elevation", dict(bpm=bpm, rr_var=rr_var, st_offset=st_offset, n_peaks=len(peaks))
+        return "st_elevation", dict(
+            bpm=bpm, rr_var=rr_var, st_offset=st_offset, n_peaks=len(peaks)
+        )
     if rr_var is not None and rr_var > 0.25:
-        return "afib", dict(bpm=bpm, rr_var=rr_var, st_offset=st_offset, n_peaks=len(peaks))
+        return "afib", dict(
+            bpm=bpm, rr_var=rr_var, st_offset=st_offset, n_peaks=len(peaks)
+        )
     if bpm is not None and bpm > 100:
-        return "tachy", dict(bpm=bpm, rr_var=rr_var, st_offset=st_offset, n_peaks=len(peaks))
-    return "normal", dict(bpm=bpm, rr_var=rr_var, st_offset=st_offset, n_peaks=len(peaks))
+        return "tachy", dict(
+            bpm=bpm, rr_var=rr_var, st_offset=st_offset, n_peaks=len(peaks)
+        )
+    return "normal", dict(
+        bpm=bpm, rr_var=rr_var, st_offset=st_offset, n_peaks=len(peaks)
+    )
 
 
 def main():
@@ -71,10 +80,10 @@ def main():
 
     # try to read meta
     base = os.path.splitext(os.path.basename(args.input))[0]
-    meta_path = os.path.join(os.path.dirname(args.input), base + '.meta.json')
+    meta_path = os.path.join(os.path.dirname(args.input), base + ".meta.json")
     if args.sr is None and os.path.exists(meta_path):
         m = json.load(open(meta_path))
-        args.sr = m.get('sampling_rate', None)
+        args.sr = m.get("sampling_rate", None)
 
     if args.sr is None:
         args.sr = 250.0

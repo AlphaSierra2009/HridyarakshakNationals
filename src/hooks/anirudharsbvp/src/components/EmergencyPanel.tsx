@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,7 @@ const EmergencyPanel = ({
     toast.success("Emergency contacts saved!");
     setTimeout(() => setSaved(false), 2000);
   };
-  const sendEmergencyAlert = async () => {
+  const sendEmergencyAlert = useCallback(async () => {
     if (!location) {
       toast.error("Location not available");
       return;
@@ -55,14 +55,14 @@ const EmergencyPanel = ({
       timestamp: new Date(),
       event: "ST Elevation Detected"
     });
-  };
+  }, [location, contacts]);
 
   // Auto-send alert when ST elevation is detected
   useEffect(() => {
     if (stElevationDetected && location && (contacts.phone || contacts.email)) {
       sendEmergencyAlert();
     }
-  }, [stElevationDetected, location, contacts]);
+  }, [stElevationDetected, location, contacts, sendEmergencyAlert]);
   return <Card className="border-2 bg-zinc-800">
       <div className="p-4 border-b bg-zinc-800">
         <div className="flex items-center gap-2 text-slate-50">
