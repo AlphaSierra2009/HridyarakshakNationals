@@ -1,6 +1,10 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Activity, Heart, Settings, Bell } from "lucide-react";
+import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useECGData } from "@/hooks/useECGData";
 import { useLocation } from "@/hooks/useLocation";
@@ -11,6 +15,7 @@ import EmergencyContacts from "@/components/EmergencyContacts";
 import AlertStatus from "@/components/AlertStatus";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import useECGStream from "@/hooks/useECGStream";
+
 
 import ECGMonitor from "@/components/ECGMonitor";
 
@@ -32,9 +37,11 @@ interface Alert {
 }
 
 const Index = () => {
-  // no auth now — keep ECG and location hooks working
+  const { user, loading } = useAuth();
+
+  // Call hooks unconditionally (rules-of-hooks) — pass user id into ECG hook to avoid subscribing when unauthenticated
   const { location, isLoading: locationLoading } = useLocation();
-  const { readings, isConnected, heartRate, stElevationDetected } = useECGData();
+  const { readings, isConnected, heartRate, stElevationDetected } = useECGData(user?.id);
   const { hospitals, loading: hospitalsLoading } = useNearestHospital(location);
   const { connected, connect } = useECGStream();
 
@@ -42,8 +49,124 @@ const Index = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [aiResult, setAiResult] = useState<string | null>(null);
 
+  const [phone, setPhone] = useState<string>("");
+  const [savingPhone, setSavingPhone] = useState(false);
+
   const ANALYSIS_URL = import.meta.env.VITE_ANALYSIS_URL || "http://localhost:54321/functions/v1/analyze-ecg";
   const [analyzing, setAnalyzing] = useState(false);
+
+  // fetch functions (memoized) — place before effects that use them
+  const fetchContacts = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("emergency_contacts")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("priority");
+    if (data) setContacts(data);
+  }, [user?.id]);
+
+  const fetchAlerts = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("emergency_alerts")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("triggered_at", { ascending: false })
+      .limit(10);
+    if (data) setAlerts(data);
+  }, [user?.id]);
+
+  // Effects (unconditional) — safe guards inside each effect handle early exits
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchContacts();
+    fetchAlerts();
+  }, [fetchContacts, fetchAlerts, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("phone_number")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.warn("Profile load failed:", error.message);
+        return;
+      }
+
+      if (!cancelled && data?.phone_number) {
+        setPhone(data.phone_number);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("alerts-channel")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "emergency_alerts",
+        },
+        (payload: unknown) => {
+          // Refresh list
+          fetchAlerts();
+
+          // On INSERT show browser notification
+          try {
+            const p = payload as {
+              eventType?: string;
+              type?: string;
+              new?: Record<string, unknown>;
+              record?: Record<string, unknown>;
+              new_record?: Record<string, unknown>;
+            };
+
+            if (p?.eventType === 'INSERT' || p?.eventType === 'insert' || p?.type === 'INSERT') {
+              const rec = p?.new || p?.record || p?.new_record || undefined;
+              const st = rec ? (rec['stemi_level'] ?? rec['stemi']) : null;
+              const alertType = rec ? String(rec['alert_type'] ?? 'New emergency alert') : 'New emergency alert';
+              const msg = `${alertType} — ST% ${st ?? '--'}`;
+
+              if (typeof Notification !== 'undefined') {
+                if (Notification.permission === 'granted') new Notification('Emergency Alert', { body: msg });
+                else if (Notification.permission !== 'denied') Notification.requestPermission().then((perm) => { if (perm === 'granted') new Notification('Emergency Alert', { body: msg }); });
+              }
+            }
+          } catch (nErr) { console.warn('Realtime notification failed', nErr); }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAlerts]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
+
+  // auth redirect handled after initial hooks and effects to comply with rules-of-hooks
 
   const analyzeECG = async () => {
     try {
@@ -54,8 +177,8 @@ const Index = () => {
 
       setAnalyzing(true);
 
-      // extract numeric values from readings (support both raw array and objects)
-      const signal = readings.map((r: any) => (typeof r === "number" ? r : r.reading_value ?? 0));
+      // extract numeric values from readings
+      const signal = readings.map((r) => r.reading_value ?? 0);
 
       const response = await fetch(ANALYSIS_URL, {
         method: "POST",
@@ -89,65 +212,45 @@ const Index = () => {
     }
   };
 
-  // fetch public contacts (no user filter)
-  const fetchContacts = async () => {
-    const { data } = await supabase
-      .from("emergency_contacts")
-      .select("*")
-      .order("priority");
-    if (data) setContacts(data);
+
+
+  // moved: initial data loading effects are declared earlier to comply with rules-of-hooks
+
+
+  const savePhoneNumber = async () => {
+    if (loading) return;
+
+    if (!user?.id) {
+      toast.error("User not authenticated");
+      return;
+    }
+
+    if (!phone.trim()) {
+      toast.error("Phone number cannot be empty");
+      return;
+    }
+
+    setSavingPhone(true);
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({
+        id: user.id,
+        phone_number: phone.trim(),
+        updated_at: new Date().toISOString(),
+      });
+
+    setSavingPhone(false);
+
+    if (error) {
+      console.error("Save failed:", error.message);
+      toast.error("Failed to save phone number");
+    } else {
+      toast.success("Phone number saved");
+    }
   };
 
-  // fetch latest alerts (no user filter)
-  const fetchAlerts = async () => {
-    const { data } = await supabase
-      .from("emergency_alerts")
-      .select("*")
-      .order("triggered_at", { ascending: false })
-      .limit(10);
-    if (data) setAlerts(data);
-  };
-
-  useEffect(() => {
-    fetchContacts();
-    fetchAlerts();
-  }, []);
-
-  // Realtime subscription for all alerts (no user filter)
-  useEffect(() => {
-    const channel = supabase
-      .channel("alerts-channel")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "emergency_alerts",
-        },
-        (payload: any) => {
-          // Refresh list
-          fetchAlerts();
-
-          // On INSERT show browser notification
-          try {
-            if (payload?.eventType === 'INSERT' || payload?.eventType === 'insert' || payload?.type === 'INSERT') {
-              const rec = payload?.new || payload?.record || payload?.new_record || null;
-              const st = rec?.stemi_level ?? rec?.stemi ?? null;
-              const msg = rec ? `${rec.alert_type} — ST% ${st ?? '--'}` : 'New emergency alert';
-              if (typeof Notification !== 'undefined') {
-                if (Notification.permission === 'granted') new Notification('Emergency Alert', { body: msg });
-                else if (Notification.permission !== 'denied') Notification.requestPermission().then(p => { if (p === 'granted') new Notification('Emergency Alert', { body: msg }); });
-              }
-            }
-          } catch (nErr) { console.warn('Realtime notification failed', nErr); }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+  // realtime subscription moved earlier; kept here for reference
 
   return (
     <div className="min-h-screen bg-background page-transition">
@@ -173,6 +276,16 @@ const Index = () => {
             )}
             <Button variant="ghost" size="icon">
               <Settings className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.href = "/login";
+              }}
+            >
+              Logout
             </Button>
             <Button
               variant="default"
@@ -203,6 +316,54 @@ const Index = () => {
 
           {/* Right Column */}
           <div className="space-y-6">
+            <Card className="soft-shadow transition-all">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  Profile
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center text-lg font-semibold">
+                    {user?.email?.[0]?.toUpperCase() || "U"}
+                  </div>
+
+                  <div>
+                    <div className="font-medium text-base">
+                      {user?.name || "User"}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {user?.email}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">
+                    Phone Number
+                  </label>
+
+                  <input
+                    type="tel"
+                    placeholder="ENTER YOUR EMERGENCY HOME CONTACT NUMBER"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md bg-background border border-border text-sm"
+                  />
+
+                  <Button
+                    size="sm"
+                    onClick={savePhoneNumber}
+                    disabled={savingPhone}
+                    className="w-full mt-2"
+                  >
+                    {savingPhone ? "Saving…" : "Save Phone Number"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
             <Card className="soft-shadow hover-lift transition-all">
               <CardHeader>
                 <CardTitle>AI ECG Analysis (Beta)</CardTitle>
